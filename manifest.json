@@ -1,0 +1,11 @@
+{
+  "name": "Undercurrent — Running Order",
+  "short_name": "Undercurrent",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#161210",
+  "theme_color": "#161210",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
