@@ -1,5 +1,5 @@
 /* Undercurrent — offline cache. Bump the version number when you update the app. */
-var CACHE = 'undercurrent-v1';
+var CACHE = 'undercurrent-v2';
 var ASSETS = ['./', './index.html', './manifest.json', './icon.png'];
 
 self.addEventListener('install', function (e) {
