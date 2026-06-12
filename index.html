@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Undercurrent — Running Order</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="theme-color" content="#161210">
+<style>
+  :root{
+    --bg:#161210;
+    --card:#221c18;
+    --card-edge:#352c25;
+    --ink:#f2ece4;
+    --ink-dim:#a89c8e;
+    --spot:#ffb14e;
+    --spot-deep:#c97f1e;
+    --done:#7fc97f;
+    --danger:#e0705f;
+    --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--bg);color:var(--ink);
+    font:16px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    padding-bottom:130px;
+    overscroll-behavior-y:contain;
+  }
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:linear-gradient(to bottom,rgba(22,18,16,.98) 70%,rgba(22,18,16,.92));
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--card-edge);
+    padding:12px 16px 10px;
+  }
+  .masthead{display:flex;justify-content:space-between;align-items:baseline}
+  .masthead h1{
+    font-size:15px;letter-spacing:.18em;text-transform:uppercase;
+    font-weight:800;color:var(--spot);
+  }
+  #clock{font-family:var(--mono);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+  .finish-row{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:6px;font-size:13px;color:var(--ink-dim);
+  }
+  .finish-row b{color:var(--ink);font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums}
+  #progress{font-family:var(--mono);margin-right:8px}
+  #settingsBtn{background:none;border:none;color:var(--ink-dim);font-size:13px;padding:4px 0;text-decoration:underline dotted}
+
+  /* ---------- settings ---------- */
+  #settings{display:none;padding:10px 16px;border-bottom:1px solid var(--card-edge);background:var(--card)}
+  #settings.open{display:block}
+  #settings .row{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:14px}
+  #settings label{flex:1;color:var(--ink-dim)}
+  #settings input{
+    width:84px;background:var(--bg);color:var(--ink);border:1px solid var(--card-edge);
+    border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:15px;text-align:center;
+  }
+  #settings .danger-zone{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+  .btn-sm{border:1px solid var(--card-edge);background:var(--bg);color:var(--ink-dim);
+    border-radius:8px;padding:7px 10px;font-size:13px}
+  .btn-sm.red{color:var(--danger);border-color:#5a3530}
+  .btn-sm.amber{color:var(--spot);border-color:#5d4524}
+
+  /* ---------- act list ---------- */
+  #list{padding:12px 12px 0}
+  .act{
+    background:var(--card);border:1px solid var(--card-edge);border-radius:14px;
+    margin-bottom:10px;overflow:hidden;
+    transition:box-shadow .15s,border-color .15s;
+  }
+  .act.dragging{opacity:.92;border-color:var(--spot);box-shadow:0 8px 24px rgba(0,0,0,.55);position:relative;z-index:10}
+  .act.performing{border-color:var(--spot);box-shadow:0 0 0 1px var(--spot),0 0 28px rgba(255,177,78,.18)}
+  .act.done{opacity:.62}
+  .act.noshow{opacity:.45}
+  .act.noshow .act-name{text-decoration:line-through;color:var(--ink-dim)}
+  .act.break-item{border-style:dashed;background:#1c1814}
+  .act-main{display:flex;align-items:stretch}
+  .handle{
+    flex:0 0 44px;display:flex;align-items:center;justify-content:center;
+    color:var(--ink-dim);font-size:18px;touch-action:none;cursor:grab;
+    border-right:1px solid var(--card-edge);user-select:none;-webkit-user-select:none;
+  }
+  .act-body{flex:1;padding:10px 12px;min-width:0}
+  .act-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .act-name{font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .act-name .pos{color:var(--ink-dim);font-weight:600;font-family:var(--mono);font-size:13px;margin-right:6px}
+  .upnext{
+    display:inline-block;font-size:10px;font-weight:800;letter-spacing:.1em;
+    color:var(--spot);border:1px solid var(--spot-deep);border-radius:5px;
+    padding:1px 5px;margin-right:6px;vertical-align:2px;
+  }
+  .slot{font-family:var(--mono);font-size:14px;color:var(--ink-dim);font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .act.performing .slot{color:var(--spot)}
+  .act-sub{display:flex;align-items:center;gap:8px;margin-top:3px;font-size:13px;color:var(--ink-dim);flex-wrap:wrap}
+  .type-badge{
+    background:var(--bg);border:1px solid var(--card-edge);border-radius:99px;
+    padding:1px 9px;font-size:12px;
+  }
+  .done-time{color:var(--done);font-family:var(--mono)}
+  .noshow-tag{color:var(--danger);font-size:12px}
+  .note-line{
+    margin-top:4px;font-size:13px;color:var(--spot);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+
+  .stopwatch{
+    font-family:var(--mono);font-size:30px;font-weight:700;color:var(--spot);
+    font-variant-numeric:tabular-nums;margin:6px 0 2px;letter-spacing:.02em;
+  }
+
+  .act-controls{display:flex;align-items:center;gap:8px;padding:0 12px 10px 56px;flex-wrap:wrap}
+  .act-controls:empty{padding:0}
+  .go-btn{border:none;border-radius:10px;padding:9px 16px;font-size:14px;font-weight:700}
+  .go-btn.start{background:var(--spot);color:#211503}
+  .go-btn.stop{background:var(--danger);color:#fff}
+  .chip{
+    border:1px solid var(--card-edge);background:var(--bg);color:var(--ink-dim);
+    border-radius:99px;padding:7px 11px;font-size:13px;
+  }
+  .chip.on{background:#2c3b2a;border-color:#4d6b48;color:var(--done)}
+
+  /* regulars roster */
+  .reg-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .reg-row:empty{display:none}
+  .reg-chip{
+    border:1px solid #5d4524;background:var(--card);color:var(--spot);
+    border-radius:99px;padding:7px 12px;font-size:13px;
+  }
+  .reg-chip.added{opacity:.45;border-color:var(--card-edge);color:var(--ink-dim)}
+  .reg-chip .x{margin-left:7px;color:var(--danger);font-weight:700}
+
+  .edit-panel{display:none;border-top:1px solid var(--card-edge);padding:10px 12px;background:#1b1714}
+  .act.expanded .edit-panel{display:block}
+  .edit-panel .row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+  .edit-panel label{flex:0 0 70px;font-size:13px;color:var(--ink-dim)}
+  .edit-panel input,.edit-panel select,.edit-panel textarea{
+    flex:1;background:var(--bg);color:var(--ink);border:1px solid var(--card-edge);
+    border-radius:8px;padding:8px;font-size:15px;min-width:0;font-family:inherit;
+  }
+  .edit-panel textarea{resize:vertical;min-height:48px}
+  .edit-panel .row.btns{justify-content:flex-end;margin-bottom:0;flex-wrap:wrap}
+
+  /* ---------- add bar ---------- */
+  #addBar{
+    position:fixed;left:0;right:0;bottom:0;z-index:60;
+    background:rgba(22,18,16,.97);backdrop-filter:blur(8px);
+    border-top:1px solid var(--card-edge);padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+  .add-toggles{display:flex;gap:8px}
+  #addToggle{
+    flex:1;background:var(--spot);color:#211503;border:none;border-radius:12px;
+    padding:13px;font-size:16px;font-weight:800;letter-spacing:.02em;
+  }
+  #addBreak{
+    flex:0 0 auto;background:var(--card);color:var(--ink-dim);border:1px dashed var(--card-edge);
+    border-radius:12px;padding:13px 16px;font-size:14px;font-weight:700;
+  }
+  #addForm{display:none}
+  #addForm.open{display:block}
+  #addForm .row{display:flex;gap:8px;margin-bottom:8px}
+  #addForm input,#addForm select,#addForm textarea{
+    flex:1;background:var(--card);color:var(--ink);border:1px solid var(--card-edge);
+    border-radius:10px;padding:11px;font-size:16px;min-width:0;font-family:inherit;
+  }
+  #addForm textarea{resize:none;height:48px}
+  #addForm input.mins{flex:0 0 80px;text-align:center;font-family:var(--mono)}
+  #addForm .row.btns button{flex:1;border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:700}
+  #saveAct{background:var(--spot);color:#211503}
+  #cancelAdd{background:var(--card);color:var(--ink-dim);border:1px solid var(--card-edge)!important}
+
+  #empty{text-align:center;color:var(--ink-dim);padding:48px 24px;font-size:14px}
+  #storageNote{margin:4px 16px 0;font-size:11px;color:#6b6056;text-align:center;display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="masthead">
+    <h1>Undercurrent</h1>
+    <div id="clock">--:--:--</div>
+  </div>
+  <div class="finish-row">
+    <button id="settingsBtn">Doors 19:00 · set 15′ · change 1′</button>
+    <span><span id="progress">0/0</span>Finish <b id="finishTime">--:--</b></span>
+  </div>
+</header>
+
+<div id="settings">
+  <div class="row"><label>Night starts</label><input type="time" id="setStart" value="19:00"></div>
+  <div class="row"><label>Default set (min)</label><input type="number" id="setEst" value="15" min="1" inputmode="numeric"></div>
+  <div class="row"><label>Changeover (min)</label><input type="number" id="setChange" value="1" min="0" inputmode="numeric"></div>
+  <div id="regularsManage" style="display:none;margin-top:10px">
+    <div style="font-size:13px;color:var(--ink-dim);margin-bottom:6px">Regulars — tap × to remove from roster</div>
+    <div class="reg-row" id="regList"></div>
+  </div>
+  <div class="danger-zone">
+    <button class="btn-sm amber" id="copyOrder">Copy running order</button>
+    <button class="btn-sm" id="resetNight">Reset night (keep acts)</button>
+    <button class="btn-sm red" id="clearAll">Clear everything</button>
+  </div>
+</div>
+
+<p id="storageNote">Preview mode — data won’t save until the file is opened in your phone’s browser.</p>
+
+<div id="list"></div>
+<div id="empty" style="display:none">No acts yet.<br>Tap <b>Add act</b> to build tonight’s running order.</div>
+
+<div id="addBar">
+  <div class="add-toggles" id="addToggles">
+    <button id="addToggle">＋ Add act</button>
+    <button id="addBreak">＋ Break</button>
+  </div>
+  <div id="addForm">
+    <div class="reg-row" id="regPick"></div>
+    <div class="row"><input type="text" id="newName" placeholder="Artist name" autocomplete="off"></div>
+    <div class="row">
+      <select id="newType">
+        <option>Original songs · guitar</option>
+        <option>Original songs · backing tracks</option>
+        <option>Covers · guitar</option>
+        <option>Covers · backing tracks</option>
+        <option>Poetry / spoken word</option>
+        <option>Keys</option>
+        <option>Comedy</option>
+        <option>Other</option>
+      </select>
+      <input type="number" class="mins" id="newMins" inputmode="numeric" min="1" placeholder="15">
+    </div>
+    <div class="row"><textarea id="newNotes" placeholder="Notes — DI box, needs keyboard, backing track on phone…"></textarea></div>
+    <div class="row btns">
+      <button id="cancelAdd">Cancel</button>
+      <button id="saveAct">Add to running order</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var KEY='undercurrent_running_order_v1';
+var memStore=null, canStore=true;
+try{ localStorage.setItem('__t','1'); localStorage.removeItem('__t'); }
+catch(e){ canStore=false; document.getElementById('storageNote').style.display='block'; }
+
+function load(){
+  try{
+    var raw = canStore ? localStorage.getItem(KEY) : memStore;
+    if(raw){
+      var s=JSON.parse(raw);
+      // migrate older saves
+      (s.acts||[]).forEach(function(a){
+        if(a.notes===undefined) a.notes='';
+        if(a.kind===undefined) a.kind='act';
+      });
+      if(s.regulars===undefined) s.regulars=[];
+      return s;
+    }
+  }catch(e){}
+  return null;
+}
+function persist(){
+  var raw=JSON.stringify(state);
+  if(canStore){ try{ localStorage.setItem(KEY,raw); }catch(e){} }
+  else memStore=raw;
+}
+
+var state = load() || {
+  nightStart:'19:00',
+  defaultEst:15,
+  changeover:1,
+  regulars:[],
+  acts:[{
+    id:uid(), kind:'act', name:'Rick · host opener', type:'Covers · guitar', est:8,
+    status:'waiting', startedAt:null, endedAt:null, actualSec:null,
+    photos:false, videos:false, insta:false, notes:''
+  }]
+};
+
+function uid(){ return 'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function pad(n){ return (n<10?'0':'')+n; }
+function fmtHM(d){ return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function fmtSW(sec){ var m=Math.floor(sec/60), s=sec%60; return pad(m)+':'+pad(s); }
+function nightStartDate(){
+  var p=state.nightStart.split(':'), d=new Date();
+  d.setHours(+p[0]||19, +p[1]||0, 0, 0);
+  return d;
+}
+
+/* ---------- schedule ---------- */
+function computeSchedule(){
+  var now=Date.now(), t=nightStartDate().getTime(), ch=state.changeover*60000;
+  var performing=state.acts.some(function(a){return a.status==='performing';});
+  var out=[], lastEnd=null;
+  state.acts.forEach(function(a){
+    if(a.status==='noshow'){ out.push(null); return; }
+    var start,end;
+    if(a.status==='done'){
+      if(a.kind==='break'){
+        start=end=null; // break already taken; contributes nothing forward
+      }else{
+        start=a.startedAt; end=a.endedAt; t=end+ch;
+      }
+    }else if(a.status==='performing'){
+      start=a.startedAt;
+      end=Math.max(start+a.est*60000, now);
+      t=end+ch;
+    }else{
+      if(t<now && !performing) t=now;
+      start=t; end=t+a.est*60000;
+      t=end+ch;
+    }
+    out.push({start:start,end:end});
+    if(end) lastEnd=end;
+  });
+  return {slots:out, finish: lastEnd?new Date(lastEnd):null};
+}
+
+/* ---------- render ---------- */
+var listEl=document.getElementById('list');
+function render(){
+  var sched=computeSchedule();
+  listEl.innerHTML='';
+  document.getElementById('empty').style.display = state.acts.length?'none':'block';
+
+  var upNextId=null, nightLive=state.acts.some(function(a){return a.status==='done'||a.status==='performing';});
+  if(nightLive){
+    var nxt=state.acts.find(function(a){return a.kind==='act'&&a.status==='waiting';});
+    if(nxt) upNextId=nxt.id;
+  }
+
+  state.acts.forEach(function(a,i){
+    var slot=sched.slots[i];
+    var el=document.createElement('div');
+    el.className='act '+a.status+(a.kind==='break'?' break-item':'')+(a._expanded?' expanded':'');
+    el.dataset.id=a.id;
+
+    var slotTxt='';
+    if(a.status==='noshow') slotTxt='—';
+    else if(a.status==='done') slotTxt = a.kind==='break' ? '✓' : '<span class="done-time">'+fmtSW(a.actualSec)+'</span>';
+    else slotTxt='~'+fmtHM(new Date(slot.start));
+
+    var sub='';
+    if(a.kind==='break'){
+      sub='<span>'+a.est+' min</span>'+(a.status==='done'?'<span class="done-time">✓ taken</span>':'');
+    }else{
+      sub='<span class="type-badge">'+esc(a.type)+'</span><span>'+a.est+' min</span>';
+      if(a.status==='done') sub+='<span class="done-time">✓ performed (est '+a.est+'′)</span>';
+      if(a.status==='noshow') sub+='<span class="noshow-tag">no-show</span>';
+    }
+
+    var noteLine = a.notes ? '<div class="note-line">✎ '+esc(a.notes)+'</div>' : '';
+
+    var sw = a.status==='performing'
+      ? '<div class="stopwatch" data-sw>'+fmtSW(elapsed(a))+'</div>' : '';
+
+    var controls='';
+    if(a.kind==='break'){
+      if(a.status==='waiting') controls='<button class="go-btn start" data-act="breakdone">✓ Break over</button>';
+    }else{
+      var goBtn = a.status==='waiting'
+          ? '<button class="go-btn start" data-act="start">▶ Start set</button>'
+        : a.status==='performing'
+          ? '<button class="go-btn stop" data-act="stop">■ End set</button>'
+          : '';
+      if(a.status!=='noshow')
+        controls = goBtn + chip(a,'photos','📷') + chip(a,'videos','🎥') + chip(a,'insta','📲 IG');
+    }
+
+    var upnext = a.id===upNextId ? '<span class="upnext">UP NEXT</span>' : '';
+
+    var editRows='';
+    if(a.kind==='break'){
+      editRows =
+        '<div class="row"><label>Length (min)</label><input data-edit="est" type="number" min="1" inputmode="numeric" value="'+a.est+'"></div>'+
+        '<div class="row btns">'+
+          (a.status==='done'?'<button class="btn-sm" data-act="reperform">Reset</button>':'')+
+          '<button class="btn-sm red" data-act="remove">Remove</button>'+
+        '</div>';
+    }else{
+      editRows =
+        '<div class="row"><label>Name</label><input data-edit="name" value="'+esc(a.name)+'"></div>'+
+        '<div class="row"><label>Type</label><select data-edit="type">'+typeOptions(a.type)+'</select></div>'+
+        '<div class="row"><label>Est (min)</label><input data-edit="est" type="number" min="1" inputmode="numeric" value="'+a.est+'"></div>'+
+        '<div class="row"><label>Notes</label><textarea data-edit="notes" placeholder="DI box, keyboard, backing track…">'+esc(a.notes)+'</textarea></div>'+
+        '<div class="row btns">'+
+          '<button class="btn-sm amber" data-act="togglereg">'+(regIndex(a.name)>-1?'★ Remove from regulars':'☆ Save as regular')+'</button>'+
+          (a.status==='waiting'?'<button class="btn-sm red" data-act="noshow">Mark no-show</button>':'')+
+          (a.status==='done'||a.status==='noshow'?'<button class="btn-sm" data-act="reperform">Reset to waiting</button>':'')+
+          '<button class="btn-sm red" data-act="remove">Remove</button>'+
+        '</div>';
+    }
+
+    el.innerHTML =
+      '<div class="act-main">'+
+        '<div class="handle">⠿</div>'+
+        '<div class="act-body" data-act="expand">'+
+          '<div class="act-top">'+
+            '<div class="act-name"><span class="pos">'+(i+1)+'</span>'+upnext+esc(a.name)+'</div>'+
+            '<div class="slot">'+slotTxt+'</div>'+
+          '</div>'+
+          sw+
+          '<div class="act-sub">'+sub+'</div>'+
+          noteLine+
+        '</div>'+
+      '</div>'+
+      '<div class="act-controls">'+controls+'</div>'+
+      '<div class="edit-panel">'+editRows+'</div>';
+    listEl.appendChild(el);
+  });
+
+  updateHeader(sched);
+  renderRegs();
+}
+function chip(a,k,label){
+  return '<button class="chip'+(a[k]?' on':'')+'" data-chip="'+k+'">'+label+'</button>';
+}
+function typeOptions(sel){
+  var types=['Original songs · guitar','Original songs · backing tracks','Covers · guitar',
+             'Covers · backing tracks','Poetry / spoken word','Keys','Comedy','Other'];
+  if(types.indexOf(sel)===-1) types.push(sel);
+  return types.map(function(t){
+    return '<option'+(t===sel?' selected':'')+'>'+esc(t)+'</option>';
+  }).join('');
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function elapsed(a){ return Math.floor((Date.now()-a.startedAt)/1000); }
+function findAct(id){ return state.acts.find(function(a){return a.id===id;}); }
+
+/* ---------- regulars roster ---------- */
+function regIndex(name){
+  return state.regulars.findIndex(function(r){
+    return r.name.toLowerCase()===String(name).toLowerCase();
+  });
+}
+function sortedRegs(){
+  return state.regulars.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
+}
+function renderRegs(){
+  // quick-pick chips in the add form
+  var pick=document.getElementById('regPick');
+  pick.innerHTML='';
+  sortedRegs().forEach(function(r){
+    var inOrder=state.acts.some(function(a){
+      return a.kind==='act'&&a.name.toLowerCase()===r.name.toLowerCase();
+    });
+    var b=document.createElement('button');
+    b.className='reg-chip'+(inOrder?' added':'');
+    b.textContent=(inOrder?'✓ ':'★ ')+r.name;
+    b.disabled=inOrder;
+    b.addEventListener('click',function(){
+      state.acts.push({
+        id:uid(), kind:'act', name:r.name, type:r.type||'Other',
+        est:r.est||state.defaultEst,
+        status:'waiting', startedAt:null, endedAt:null, actualSec:null,
+        photos:false, videos:false, insta:false, notes:r.notes||''
+      });
+      persist(); render();
+    });
+    pick.appendChild(b);
+  });
+  // management list in settings
+  var wrap=document.getElementById('regularsManage'), list=document.getElementById('regList');
+  wrap.style.display=state.regulars.length?'block':'none';
+  list.innerHTML='';
+  sortedRegs().forEach(function(r){
+    var b=document.createElement('button');
+    b.className='reg-chip';
+    b.innerHTML=esc(r.name)+'<span class="x">×</span>';
+    b.addEventListener('click',function(){
+      if(!confirm('Remove '+r.name+' from the regulars roster?')) return;
+      state.regulars.splice(regIndex(r.name),1);
+      persist(); render();
+    });
+    list.appendChild(b);
+  });
+}
+
+function updateHeader(sched){
+  sched = sched || computeSchedule();
+  document.getElementById('finishTime').textContent = sched.finish?fmtHM(sched.finish):'--:--';
+  var acts=state.acts.filter(function(a){return a.kind==='act'&&a.status!=='noshow';});
+  var done=acts.filter(function(a){return a.status==='done';}).length;
+  document.getElementById('progress').textContent = done+'/'+acts.length+' · ';
+  document.getElementById('settingsBtn').textContent =
+    'Doors '+state.nightStart+' · set '+state.defaultEst+'′ · change '+state.changeover+'′';
+}
+
+/* ---------- per-second tick ---------- */
+function tick(){
+  document.getElementById('clock').textContent = new Date().toTimeString().slice(0,8);
+  state.acts.forEach(function(a){
+    if(a.status==='performing'){
+      var el=listEl.querySelector('[data-id="'+a.id+'"] [data-sw]');
+      if(el) el.textContent=fmtSW(elapsed(a));
+    }
+  });
+  if(new Date().getSeconds()===0){
+    var sched=computeSchedule();
+    state.acts.forEach(function(a,i){
+      if(a.status==='waiting'){
+        var el=listEl.querySelector('[data-id="'+a.id+'"] .slot');
+        if(el && sched.slots[i]) el.textContent='~'+fmtHM(new Date(sched.slots[i].start));
+      }
+    });
+    updateHeader(sched);
+  }
+}
+setInterval(tick,1000); tick();
+
+/* ---------- interactions ---------- */
+listEl.addEventListener('click',function(e){
+  var actEl=e.target.closest('.act'); if(!actEl) return;
+  var a=findAct(actEl.dataset.id); if(!a) return;
+
+  var chipK=e.target.closest('[data-chip]');
+  if(chipK){ a[chipK.dataset.chip]=!a[chipK.dataset.chip]; persist(); render(); return; }
+
+  var actBtn=e.target.closest('[data-act]');
+  if(!actBtn) return;
+  var cmd=actBtn.dataset.act;
+
+  if(cmd==='start'){
+    state.acts.forEach(function(o){ if(o.status==='performing') stopAct(o); });
+    a.status='performing'; a.startedAt=Date.now(); a.endedAt=null;
+    persist(); render();
+  }
+  else if(cmd==='stop'){ stopAct(a); persist(); render(); }
+  else if(cmd==='breakdone'){ a.status='done'; persist(); render(); }
+  else if(cmd==='noshow'){ a.status='noshow'; a._expanded=false; persist(); render(); }
+  else if(cmd==='remove'){
+    if(confirm('Remove '+a.name+' from the running order?')){
+      state.acts=state.acts.filter(function(o){return o.id!==a.id;});
+      persist(); render();
+    }
+  }
+  else if(cmd==='togglereg'){
+    var ri=regIndex(a.name);
+    if(ri>-1) state.regulars.splice(ri,1);
+    else state.regulars.push({name:a.name, type:a.type, est:a.est, notes:a.notes||''});
+    persist(); render();
+  }
+  else if(cmd==='reperform'){
+    a.status='waiting'; a.startedAt=a.endedAt=a.actualSec=null;
+    persist(); render();
+  }
+  else if(cmd==='expand'){ a._expanded=!a._expanded; render(); }
+});
+function stopAct(a){
+  a.status='done'; a.endedAt=Date.now();
+  a.actualSec=Math.max(1,Math.floor((a.endedAt-a.startedAt)/1000));
+}
+
+listEl.addEventListener('change',function(e){
+  var f=e.target.closest('[data-edit]'); if(!f) return;
+  var actEl=e.target.closest('.act'), a=findAct(actEl.dataset.id); if(!a) return;
+  var k=f.dataset.edit;
+  if(k==='est'){ a.est=Math.max(1,parseInt(f.value,10)||state.defaultEst); }
+  else a[k]=f.value;
+  persist(); render();
+});
+
+/* ---------- drag to reorder ---------- */
+var drag=null;
+listEl.addEventListener('pointerdown',function(e){
+  var h=e.target.closest('.handle'); if(!h) return;
+  var actEl=h.closest('.act');
+  drag={ id:actEl.dataset.id };
+  actEl.classList.add('dragging');
+  e.preventDefault();
+});
+document.addEventListener('pointermove',function(e){
+  if(!drag) return;
+  e.preventDefault();
+  var rows=[].slice.call(listEl.querySelectorAll('.act'));
+  var curIdx=state.acts.findIndex(function(a){return a.id===drag.id;});
+  var target=curIdx;
+  rows.forEach(function(r,i){
+    var rect=r.getBoundingClientRect();
+    if(e.clientY>rect.top && e.clientY<rect.bottom) target=i;
+  });
+  if(target!==curIdx && target>-1){
+    var moved=state.acts.splice(curIdx,1)[0];
+    state.acts.splice(target,0,moved);
+    render();
+    var el=listEl.querySelector('[data-id="'+drag.id+'"]');
+    if(el) el.classList.add('dragging');
+  }
+},{passive:false});
+document.addEventListener('pointerup',function(){
+  if(!drag) return;
+  var el=listEl.querySelector('[data-id="'+drag.id+'"]');
+  if(el) el.classList.remove('dragging');
+  drag=null; persist();
+});
+
+/* ---------- settings ---------- */
+var settingsEl=document.getElementById('settings');
+document.getElementById('settingsBtn').addEventListener('click',function(){
+  settingsEl.classList.toggle('open');
+  document.getElementById('setStart').value=state.nightStart;
+  document.getElementById('setEst').value=state.defaultEst;
+  document.getElementById('setChange').value=state.changeover;
+});
+settingsEl.addEventListener('change',function(){
+  state.nightStart=document.getElementById('setStart').value||'19:00';
+  state.defaultEst=Math.max(1,parseInt(document.getElementById('setEst').value,10)||15);
+  state.changeover=Math.max(0,parseInt(document.getElementById('setChange').value,10)||0);
+  persist(); render();
+});
+document.getElementById('resetNight').addEventListener('click',function(){
+  if(!confirm('Reset all acts to “waiting” and clear set times / checkboxes?')) return;
+  state.acts.forEach(function(a){
+    a.status='waiting'; a.startedAt=a.endedAt=a.actualSec=null;
+    a.photos=a.videos=a.insta=false;
+  });
+  persist(); render();
+});
+document.getElementById('clearAll').addEventListener('click',function(){
+  if(!confirm('Delete ALL acts and start fresh?')) return;
+  state.acts=[]; persist(); render();
+});
+
+/* ---------- copy running order ---------- */
+document.getElementById('copyOrder').addEventListener('click',function(){
+  var sched=computeSchedule(), lines=['UNDERCURRENT · running order'], n=0;
+  state.acts.forEach(function(a,i){
+    if(a.status==='noshow') return;
+    if(a.kind==='break'){ lines.push('—— Break ('+a.est+'′) ——'); return; }
+    n++;
+    var t = a.status==='done' ? fmtHM(new Date(a.startedAt))
+          : sched.slots[i] ? '~'+fmtHM(new Date(sched.slots[i].start)) : '';
+    lines.push(n+'. '+t+'  '+a.name+' — '+a.type+' ('+a.est+'′)');
+  });
+  if(sched.finish) lines.push('Projected finish '+fmtHM(sched.finish));
+  var text=lines.join('\n');
+  function fallback(){ prompt('Copy the running order:',text); }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      var b=document.getElementById('copyOrder'); b.textContent='✓ Copied';
+      setTimeout(function(){ b.textContent='Copy running order'; },1500);
+    },fallback);
+  } else fallback();
+});
+
+/* ---------- add act / break ---------- */
+var addForm=document.getElementById('addForm'),
+    addToggles=document.getElementById('addToggles');
+document.getElementById('addToggle').addEventListener('click',function(){
+  addForm.classList.add('open'); addToggles.style.display='none';
+  document.getElementById('newMins').placeholder=state.defaultEst;
+  document.getElementById('newName').focus();
+});
+document.getElementById('addBreak').addEventListener('click',function(){
+  state.acts.push({
+    id:uid(), kind:'break', name:'Break', type:'', est:15,
+    status:'waiting', startedAt:null, endedAt:null, actualSec:null,
+    photos:false, videos:false, insta:false, notes:''
+  });
+  persist(); render();
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+});
+document.getElementById('cancelAdd').addEventListener('click',closeAdd);
+function closeAdd(){
+  addForm.classList.remove('open'); addToggles.style.display='flex';
+  document.getElementById('newName').value='';
+  document.getElementById('newMins').value='';
+  document.getElementById('newNotes').value='';
+}
+document.getElementById('saveAct').addEventListener('click',function(){
+  var name=document.getElementById('newName').value.trim();
+  if(!name){ document.getElementById('newName').focus(); return; }
+  state.acts.push({
+    id:uid(), kind:'act', name:name,
+    type:document.getElementById('newType').value,
+    est:Math.max(1,parseInt(document.getElementById('newMins').value,10)||state.defaultEst),
+    status:'waiting', startedAt:null, endedAt:null, actualSec:null,
+    photos:false, videos:false, insta:false,
+    notes:document.getElementById('newNotes').value.trim()
+  });
+  persist(); render(); closeAdd();
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+});
+
+render();
+
+/* ---------- offline: register service worker ---------- */
+if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+})();
+</script>
+</body>
+</html>
